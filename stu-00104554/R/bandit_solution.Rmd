@@ -1,7 +1,7 @@
 ---
 title: "ST2195 – Epsilon-Greedy Multi-Armed Bandit (R)"
 author: "Hasan Rashed Mohamed Almadani — Student ID: stu-00104554"
-date: "`r format(Sys.Date(), '%d %b %Y')`"
+date: "15/12/2025"
 output:
   html_document:
     toc: true
@@ -11,7 +11,7 @@ output:
 ---
 
 # Introduction
-This report details the implementation and analysis of the Epsilon-Greedy algorithm for the Multi-Armed Bandit problem. Our goal is to find the best of five advertising "arms" by balancing exploration of new options and exploitation of the best-known option. This document provides solutions for Part A (single run simulation), Part B (parameter analysis), and Part C (optimistic initialization) of the assignment, including visualisations and a comprehensive analysis of the results.
+This report implements and analyzes the Epsilon-Greedy algorithm for the Multi-Armed Bandit problem. It aims to find the best of five advertising "arms" by balancing exploration and exploitation. Solutions for Part A (simulation), Part B (parameter analysis), and Part C (optimistic initialization) are provided, with visualizations and analysis.
 
 ## Student Information
 - **Name:** Hasan Rashed Mohamed Almadani
@@ -29,7 +29,7 @@ This section defines all the key parameters for our experiments, centralizing th
 
 ```{r config}
 # --- General Parameters ---
-N_STEPS <- 10000 # Number of iterations/visitors
+N_STEPS <- 10000 # Number of iterations
 RANDOM_SEED <- 2025 # For reproducibility
 
 # --- Bandit Parameters ---
@@ -48,17 +48,17 @@ OPTIMISTIC_Q <- 5.0
 ```
 
 ## 2) Core Functions
-Here, we define the essential functions for the Epsilon-Greedy algorithm, cumulative average calculation, and plotting. The `run_bandit` function has been extended to accept an `initial_q` value and to also return instantaneous `regrets`. A `plot_regret` function has also been added.
+Defines functions for the Epsilon-Greedy algorithm, cumulative average, and plotting. The `run_bandit` function now includes `initial_q` and returns `regrets`. A `plot_regret` function is also included.
 
 ```{r core-functions}
 # Epsilon-Greedy Bandit implementation
 run_bandit <- function(epsilon, n_steps, true_probs, initial_q = 0.0) {
   K <- length(true_probs)
-  Q <- rep(initial_q, K) # Initialize Q-values with initial_q
+  Q <- rep(initial_q, K) # Initializes Q-values
   N_arm <- rep(0L, K)
   rewards <- numeric(n_steps)
   choices <- integer(n_steps)
-  regrets <- numeric(n_steps) # To store instantaneous regret
+  regrets <- numeric(n_steps) # Stores instantaneous regrets
 
   p_opt <- max(true_probs) # The true probability of the optimal arm
 
@@ -70,13 +70,13 @@ run_bandit <- function(epsilon, n_steps, true_probs, initial_q = 0.0) {
       arm <- which.max(Q)
     }
 
-    # Bernoulli reward for chosen arm
+    # Bernoulli reward
     reward <- if (runif(1) < true_probs[arm]) 1.0 else 0.0
 
-    # Calculate instantaneous regret
+    # Calculates instantaneous regrets
     regrets[i] <- p_opt - true_probs[arm]
 
-    # Incremental mean update for the chosen arm
+    # Update incremental mean
     N_arm[arm] <- N_arm[arm] + 1L
     Q[arm] <- Q[arm] + (reward - Q[arm]) / N_arm[arm]
 
@@ -95,7 +95,7 @@ plot_cumavg <- function(curves, labels, p_opt = NULL,
                         title = "Cumulative Average Reward",
                         colors = NULL) {
   if (is.null(colors)) {
-    colors <- c("#1f77b4", "#2ca02c", "#d62728", "#9467bd", "#8c564b")
+    colors <- c("blue", "green", "red", "purple", "brown")
   }
   n <- length(curves)
   if (n == 0) stop("curves cannot be empty")
@@ -117,7 +117,7 @@ plot_cumavg <- function(curves, labels, p_opt = NULL,
 
 plot_regret <- function(curves, labels, title = "Cumulative Regret", colors = NULL) {
   if (is.null(colors)) {
-    colors <- c("#1f77b4", "#2ca02c", "#d62728", "#9467bd", "#8c564b")
+    colors <- c("blue", "green", "red", "purple", "brown")
   }
   n <- length(curves)
   if (n == 0) stop("curves cannot be empty")
@@ -133,7 +133,7 @@ plot_regret <- function(curves, labels, title = "Cumulative Regret", colors = NU
 ```
 
 ## 3) Part A — Single run with ε = 0.10
-We run the simulation for `N_STEPS` iterations with `BALANCED_EPSILON` to observe the algorithm's learning process. Both the cumulative average reward and the cumulative regret are plotted.
+Simulation runs for `N_STEPS` iterations with `BALANCED_EPSILON`. Both cumulative average reward and regret are plotted.
 
 ```{r part-a}
 res_A <- run_bandit(BALANCED_EPSILON, N_STEPS, TRUE_PROBS)
@@ -142,12 +142,12 @@ cum_regret_A <- cumsum(res_A$regrets)
 
 p_opt <- max(TRUE_PROBS)
 
-# Plot Cumulative Average Reward
+# Plot the Cumulative Average Reward
 plot_cumavg(list(cumavg_A), labels = list(sprintf("epsilon = %.2f", BALANCED_EPSILON)),
             p_opt = p_opt,
             title = "Part A: Cumulative Average Reward")
 
-# Plot Cumulative Regret
+# Plot the Cumulative Regret
 plot_regret(list(cum_regret_A), labels = list(sprintf("epsilon = %.2f", BALANCED_EPSILON)),
             title = "Part A: Cumulative Regret")
 
@@ -156,8 +156,8 @@ cat("Arm pulls:\n"); print(res_A$N_arm)
 cat("Optimal arm index:", which.max(TRUE_PROBS), "with p=", p_opt, "\n")
 ```
 
-## 4) Part B — Parameter Analysis (Explore–Exploit Trade-off)
-Here, we compare the algorithm's performance across different epsilon values (`EPSILON_VALUES`) to understand the exploration-exploitation trade-off.
+## 4) Part B — Parameter Analysis
+Compares algorithm performance across `EPSILON_VALUES` to study the exploration-exploitation trade-off.
 
 ```{r part-b}
 results <- list()
@@ -214,15 +214,15 @@ for (eps in EPSILON_VALUES) {
 ```
 
 ## 5) Part C — Optimistic Initial Values
-This experiment explores **Optimistic Initial Values**, a technique to encourage exploration. Instead of initializing Q-values to 0, we set them to a high, 'optimistic' value (`OPTIMISTIC_Q`). The algorithm is 'disappointed' by the initial, lower rewards, which drives it to explore all other arms at least once before settling on the best one. We compare this to the standard approach using a balanced epsilon.
+Explores **Optimistic Initial Values** for forced exploration. Q-values are set to `OPTIMISTIC_Q` (high), compelling the algorithm to explore all arms. Compared to standard initialization.
 
 ```{r part-c}
-# Run with standard (zero) initialization for comparison
+# Standard (zero) initialization
 res_std <- run_bandit(BALANCED_EPSILON, N_STEPS, TRUE_PROBS, initial_q = 0.0)
 cumavg_std <- cumulative_average(res_std$rewards)
 cum_regret_std <- cumsum(res_std$regrets)
 
-# Run with optimistic initialization
+# Optimistic initialization
 res_opt <- run_bandit(BALANCED_EPSILON, N_STEPS, TRUE_PROBS, initial_q = OPTIMISTIC_Q)
 cumavg_opt <- cumulative_average(res_opt$rewards)
 cum_regret_opt <- cumsum(res_opt$regrets)
@@ -242,10 +242,10 @@ plot_regret(list(cum_regret_std, cum_regret_opt),
 ```
 
 ## 6) Additional Analysis: Arm Pull Distribution
-Finally, we can visualize the *behavior* of the standard vs. optimistic agents by plotting how many times they pulled each arm. This gives a clear picture of their exploration strategy.
+Visualizes arm pull distribution for standard vs. optimistic agents to show exploration strategy.
 
 ```{r arm-pulls}
-# Prepare data for plotting
+# Prepare plotting data
 arm_names <- paste("Arm", 1:length(TRUE_PROBS))
 counts_df <- data.frame(
   Arm = rep(arm_names, 2),
@@ -253,18 +253,18 @@ counts_df <- data.frame(
   Pulls = c(res_std$N_arm, res_opt$N_arm)
 )
 
-# Plotting using base R barplot
-par(mfrow = c(1, 2), mar = c(5, 4, 4, 2) + 0.1) # Set up 2 plots side-by-side
+# Base R barplot
+par(mfrow = c(1, 2), mar = c(5, 4, 4, 2) + 0.1) # Set 2 plots side-by-side
 barplot(res_std$N_arm, names.arg = arm_names, main = "Standard Init: Arm Pulls",
         ylab = "Number of Pulls", xlab = "Arm", col = "skyblue")
 barplot(res_opt$N_arm, names.arg = arm_names, main = "Optimistic Init: Arm Pulls",
         ylab = "Number of Pulls", xlab = "Arm", col = "lightcoral")
-par(mfrow = c(1, 1)) # Reset plot layout
+par(mfrow = c(1, 1)) # Reset layout
 ```
 
 ## 7) Analysis & Conclusion
-Based on the experiments conducted, we can draw the following conclusions regarding the Epsilon-Greedy algorithm's behavior:
+Conclusions on the Epsilon-Greedy algorithm's behavior from conducted experiments:
 
-1.  **The Explore-Exploit Tradeoff (Part B)**: Our analysis confirms that choosing an appropriate epsilon value is crucial. A very low `epsilon` (0.01), while appearing "greedy," was slower to converge on the optimal arm but showed high long-term stability once it did. Conversely, a high `epsilon` (0.50) led to excessive exploration, preventing the algorithm from fully exploiting the best arm and thus keeping the cumulative reward significantly below the theoretical maximum. The cumulative regret plots clearly illustrate that a higher epsilon leads to a greater total regret, signifying the cost of over-exploration.
+1.  **The Explore-Exploit Tradeoff (Part B)**: Appropriate epsilon is crucial. Low `epsilon` (0.01) converges slowly but is stable. High `epsilon` (0.50) over-explores, preventing optimal exploitation and leading to higher cumulative regret.
 
-2.  **Optimistic Initialization (Part C)**: This experiment revealed the effectiveness of optimistic initialization as a strategy for forced exploration. By starting with high initial Q-values (5.0), the agent was compelled to try all arms, as initial rewards would invariably be lower than its optimistic belief, driving it to explore other seemingly better options. This is evident in the arm pull distribution, where the optimistic agent explored all arms more evenly compared to the standard agent which quickly focused on the highest-reward arm. While for this specific problem `epsilon=0.1` without optimistic initialization proved efficient, optimistic initialization can be invaluable in more complex scenarios to prevent premature convergence to suboptimal solutions. The initial high regret for the optimistic agent highlights the "cost" of this forced initial exploration.
+2.  **Optimistic Initialization (Part C)**: Optimistic initialization effectively forces exploration by setting high initial Q-values (5.0). This drives the agent to try all arms, evident in more even arm pull distribution compared to standard methods. Useful in complex scenarios to avoid suboptimal convergence, despite initial high regret.
